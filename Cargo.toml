@@ -1,5 +1,5 @@
 [package]
-name = "r2d2_cypher"
+name = "bb8_cypher"
 version = "0.4.0"
 license = "MIT"
 authors = ["Markus Kohlhase <mail@markus-kohlhase.de>"]
@@ -10,5 +10,6 @@ readme = "README.md"
 keywords = ["cypher", "neo4j", "r2d2"]
 
 [dependencies]
-r2d2 = "0.8"
-rusted_cypher = "1.1"
+rusted_cypher = { git = "https://github.com/hobofan/rusted-cypher", rev = '4b68788e33708ea006e087d341685e6c7875ea1d' }
+bb8 = "0.3.0"
+futures = "0.1.25"

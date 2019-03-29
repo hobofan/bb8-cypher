@@ -1,11 +1,16 @@
 // Copyright (c) 2015 - 2017 Markus Kohlhase <mail@markus-kohlhase.de>
 
-#![deny(missing_docs,
-        missing_debug_implementations, missing_copy_implementations,
-        trivial_casts, trivial_numeric_casts,
-        unsafe_code,
-        unstable_features,
-        unused_import_braces, unused_qualifications)]
+#![deny(
+  missing_docs,
+  missing_debug_implementations,
+  missing_copy_implementations,
+  trivial_casts,
+  trivial_numeric_casts,
+  unsafe_code,
+  unstable_features,
+  unused_import_braces,
+  unused_qualifications
+)]
 
 //! [r2d2-cypher](https://github.com/flosse/r2d2-cypher) is a
 //! [r2d2](https://github.com/sfackler/r2d2) connection pool for
@@ -32,11 +37,13 @@
 //! }
 //! ```
 
-extern crate r2d2;
+extern crate bb8;
+extern crate futures;
 extern crate rusted_cypher;
 
-use rusted_cypher::GraphClient;
+use futures::Future;
 use rusted_cypher::error::GraphError;
+use rusted_cypher::GraphClient;
 
 /// A struct that holds connection specific information.
 #[derive(Debug)]
@@ -45,16 +52,22 @@ pub struct CypherConnectionManager {
   pub url: String,
 }
 
-impl r2d2::ManageConnection for CypherConnectionManager {
+impl bb8::ManageConnection for CypherConnectionManager {
   type Connection = GraphClient;
   type Error = GraphError;
 
-  fn connect(&self) -> Result<GraphClient, GraphError> {
-    GraphClient::connect(&self.url)
+  fn connect(&self) -> Box<Future<Item = Self::Connection, Error = Self::Error> + Send> {
+    Box::new(GraphClient::connect(self.url.to_owned()))
   }
 
-  fn is_valid(&self, conn: &mut GraphClient) -> Result<(), GraphError> {
-    conn.exec("RETURN 1").map(|_| ())
+  fn is_valid(
+    &self,
+    conn: Self::Connection,
+  ) -> Box<Future<Item = Self::Connection, Error = (Self::Error, Self::Connection)> + Send> {
+    Box::new(conn.exec("RETURN 1").then(|res| match res {
+      Ok(_) => Ok(conn),
+      Err(err) => Err((err, conn)),
+    }))
   }
 
   fn has_broken(&self, _: &mut GraphClient) -> bool {
