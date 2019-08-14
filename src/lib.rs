@@ -7,7 +7,6 @@
   trivial_casts,
   trivial_numeric_casts,
   unsafe_code,
-  unstable_features,
   unused_import_braces,
   unused_qualifications
 )]
@@ -36,12 +35,10 @@
 //!   let result  = client.cypher().exec("MATCH (n)-[r]->() RETURN n");
 //! }
 //! ```
+#![feature(async_await)]
 
-extern crate bb8;
-extern crate futures;
-extern crate rusted_cypher;
-
-use futures::Future;
+use futures::prelude::*;
+use futures01::Future;
 use rusted_cypher::error::GraphError;
 use rusted_cypher::GraphClient;
 
@@ -56,18 +53,26 @@ impl bb8::ManageConnection for CypherConnectionManager {
   type Connection = GraphClient;
   type Error = GraphError;
 
-  fn connect(&self) -> Box<Future<Item = Self::Connection, Error = Self::Error> + Send> {
-    Box::new(GraphClient::connect(self.url.to_owned()))
+  fn connect(&self) -> Box<dyn Future<Item = Self::Connection, Error = Self::Error> + Send> {
+    Box::new(GraphClient::connect(self.url.to_owned()).boxed().compat())
   }
 
   fn is_valid(
     &self,
     conn: Self::Connection,
-  ) -> Box<Future<Item = Self::Connection, Error = (Self::Error, Self::Connection)> + Send> {
-    Box::new(conn.exec("RETURN 1").then(|res| match res {
-      Ok(_) => Ok(conn),
-      Err(err) => Err((err, conn)),
-    }))
+  ) -> Box<dyn Future<Item = Self::Connection, Error = (Self::Error, Self::Connection)> + Send> {
+    Box::new(
+      async {
+        let res = conn.exec("RETURN 1").await;
+
+        match res {
+          Ok(_) => Ok(conn),
+          Err(err) => Err((err, conn)),
+        }
+      }
+        .boxed()
+        .compat(),
+    )
   }
 
   fn has_broken(&self, _: &mut GraphClient) -> bool {

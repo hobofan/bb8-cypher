@@ -6,10 +6,12 @@ authors = ["Markus Kohlhase <mail@markus-kohlhase.de>"]
 repository = "https://github.com/flosse/r2d2-cypher"
 description = "Cypher support for the r2d2 connection pool"
 readme = "README.md"
+edition = "2018"
 
 keywords = ["cypher", "neo4j", "r2d2"]
 
 [dependencies]
-rusted_cypher = { git = "https://github.com/hobofan/rusted-cypher", rev = '4b68788e33708ea006e087d341685e6c7875ea1d' }
+rusted_cypher = { git = "https://github.com/hobofan/rusted-cypher", rev = '2031c082b8cccf41b01005906a1a86ce178c7500' }
 bb8 = "0.3.0"
-futures = "0.1.25"
+futures-preview = { version = "=0.3.0-alpha.17", features = ["compat"] }
+futures01 = { package = "futures", version = "0.1" }
