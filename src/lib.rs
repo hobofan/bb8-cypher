@@ -75,7 +75,50 @@ impl bb8::ManageConnection for CypherConnectionManager {
     )
   }
 
-  fn has_broken(&self, _: &mut GraphClient) -> bool {
+  fn has_broken(&self, _: &mut Self::Connection) -> bool {
     false
+  }
+}
+
+#[cfg(feature = "l337")]
+impl l337::ManageConnection for CypherConnectionManager {
+  type Connection = GraphClient;
+  type Error = GraphError;
+
+  fn connect(
+    &self,
+  ) -> Box<dyn Future<Item = Self::Connection, Error = l337::Error<Self::Error>> + Send> {
+    Box::new(
+      GraphClient::connect(self.url.to_owned())
+        .map_err(|e| l337::Error::External(e))
+        .boxed()
+        .compat(),
+    )
+  }
+
+  fn is_valid(
+    &self,
+    conn: Self::Connection,
+  ) -> Box<dyn Future<Item = (), Error = l337::Error<Self::Error>>> {
+    Box::new(
+      async move {
+        let res = conn.exec("RETURN 1").await;
+
+        match res {
+          Ok(_) => Ok(()),
+          Err(err) => Err(l337::Error::External(err)),
+        }
+      }
+        .boxed()
+        .compat(),
+    )
+  }
+
+  fn has_broken(&self, _: &mut Self::Connection) -> bool {
+    false
+  }
+
+  fn timed_out(&self) -> l337::Error<Self::Error> {
+    l337::Error::External(GraphError::Other("Timed out".to_owned()))
   }
 }
