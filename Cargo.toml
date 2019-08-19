@@ -12,8 +12,9 @@ keywords = ["cypher", "neo4j", "r2d2"]
 
 [dependencies]
 rusted_cypher = { git = "https://github.com/hobofan/rusted-cypher", rev = '2031c082b8cccf41b01005906a1a86ce178c7500' }
-bb8 = "0.3.0"
-futures-preview = { version = "=0.3.0-alpha.17", features = ["compat"] }
+futures-preview = { version = "0.3.0-alpha.17", features = ["compat"] }
 futures01 = { package = "futures", version = "0.1" }
+
+bb8 = { version = "0.3.0", optional = true }
 l337 = { git = "https://github.com/OneSignal/L3-37", rev = "6d96fefa75c748d4ac3618ab2bd9523d589b6cd2", optional = true }
 

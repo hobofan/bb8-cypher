@@ -49,6 +49,10 @@ pub struct CypherConnectionManager {
   pub url: String,
 }
 
+#[cfg(not(any(feature = "bb8", feature = "l337")))]
+compile_error!("Either feature \"bb8\" or \"l337\" must be enabled for this crate.");
+
+#[cfg(feature = "bb8")]
 impl bb8::ManageConnection for CypherConnectionManager {
   type Connection = GraphClient;
   type Error = GraphError;

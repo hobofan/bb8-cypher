@@ -1,4 +1,4 @@
-# r2d2_cypher
+# Connection pool (bb8 or l337) support for a rusted_cypher fork
 
 [r2d2-cypher](https://github.com/flosse/r2d2-cypher) is a
 [r2d2](https://github.com/sfackler/r2d2) connection pool for
