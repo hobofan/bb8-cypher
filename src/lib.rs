@@ -35,8 +35,6 @@
 //!   let result  = client.cypher().exec("MATCH (n)-[r]->() RETURN n");
 //! }
 //! ```
-#![feature(async_await)]
-
 use futures::prelude::*;
 use futures01::Future;
 use rusted_cypher::error::GraphError;
