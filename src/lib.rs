@@ -35,8 +35,10 @@
 //!   let result  = client.cypher().exec("MATCH (n)-[r]->() RETURN n");
 //! }
 //! ```
+#[macro_use]
+extern crate async_trait;
+
 use futures::prelude::*;
-use futures01::Future;
 use rusted_cypher::error::GraphError;
 use rusted_cypher::GraphClient;
 
@@ -47,73 +49,24 @@ pub struct CypherConnectionManager {
   pub url: String,
 }
 
-#[cfg(not(any(feature = "bb8", feature = "l337")))]
-compile_error!("Either feature \"bb8\" or \"l337\" must be enabled for this crate.");
-
-#[cfg(feature = "bb8")]
-impl bb8::ManageConnection for CypherConnectionManager {
-  type Connection = GraphClient;
-  type Error = GraphError;
-
-  fn connect(&self) -> Box<dyn Future<Item = Self::Connection, Error = Self::Error> + Send> {
-    Box::new(GraphClient::connect(self.url.to_owned()).boxed().compat())
-  }
-
-  fn is_valid(
-    &self,
-    conn: Self::Connection,
-  ) -> Box<dyn Future<Item = Self::Connection, Error = (Self::Error, Self::Connection)> + Send> {
-    Box::new(
-      async {
-        let res = conn.exec("RETURN 1").await;
-
-        match res {
-          Ok(_) => Ok(conn),
-          Err(err) => Err((err, conn)),
-        }
-      }
-        .boxed()
-        .compat(),
-    )
-  }
-
-  fn has_broken(&self, _: &mut Self::Connection) -> bool {
-    false
-  }
-}
-
-#[cfg(feature = "l337")]
+#[async_trait]
 impl l337::ManageConnection for CypherConnectionManager {
   type Connection = GraphClient;
   type Error = GraphError;
 
-  fn connect(
-    &self,
-  ) -> Box<dyn Future<Item = Self::Connection, Error = l337::Error<Self::Error>> + Send> {
-    Box::new(
-      GraphClient::connect(self.url.to_owned())
-        .map_err(|e| l337::Error::External(e))
-        .boxed()
-        .compat(),
-    )
+  async fn connect(&self) -> Result<Self::Connection, l337::Error<Self::Error>> {
+    GraphClient::connect(self.url.to_owned())
+      .map_err(|e| l337::Error::External(e))
+      .await
   }
 
-  fn is_valid(
-    &self,
-    conn: Self::Connection,
-  ) -> Box<dyn Future<Item = (), Error = l337::Error<Self::Error>>> {
-    Box::new(
-      async move {
-        let res = conn.exec("RETURN 1").await;
+  async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), l337::Error<Self::Error>> {
+    let res = conn.exec("RETURN 1").await;
 
-        match res {
-          Ok(_) => Ok(()),
-          Err(err) => Err(l337::Error::External(err)),
-        }
-      }
-        .boxed()
-        .compat(),
-    )
+    match res {
+      Ok(_) => Ok(()),
+      Err(err) => Err(l337::Error::External(err)),
+    }
   }
 
   fn has_broken(&self, _: &mut Self::Connection) -> bool {
